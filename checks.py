@@ -5,6 +5,8 @@ import regex as re
 from telethon import events
 from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
+from telethon.extensions import markdown
+from telethon import types
 from userbot import client
 import pytesseract
 from PIL import Image
@@ -12,11 +14,50 @@ import io
 
 info = {'category': 'tools', 'pattern': '.checks', 'description': 'Статус ловца чеков'}
 
+class CustomMarkdown:
+    @staticmethod
+    def parse(text):
+        """
+        A static method to parse the given text and return the parsed text with entities.
+        :param text: The text to be parsed.
+        :return: The parsed text and entities.
+        """
+        text, entities = markdown.parse(text)
+        for i, e in enumerate(entities):
+            if isinstance(e, types.MessageEntityTextUrl):
+                if e.url == 'spoiler':
+                    entities[i] = types.MessageEntitySpoiler(e.offset, e.length)
+                elif e.url.startswith('emoji/'):
+                    entities[i] = types.MessageEntityCustomEmoji(e.offset, e.length, int(e.url.split('/')[1]))
+        return text, entities
+    @staticmethod
+    def unparse(text, entities):
+        """
+        Returns the unparsed text with updated entities. 
+
+        Args:
+            text: The input text to be unparsed.
+            entities: List of entities to be updated.
+
+        Returns:
+            The unparsed text with updated entities.
+        """
+        for i, e in enumerate(entities or []):
+            if isinstance(e, types.MessageEntityCustomEmoji):
+                entities[i] = types.MessageEntityTextUrl(e.offset, e.length, f'emoji/{e.document_id}')
+            if isinstance(e, types.MessageEntitySpoiler):
+                entities[i] = types.MessageEntityTextUrl(e.offset, e.length, 'spoiler')
+        return markdown.unparse(text, entities)
+
 class ChecksModule:
     def __init__(self):
+        """
+        Initializes the attributes of the class instance, including client, channel_id, auto_withdraw, withdraw_to, auto_unfollow, anti_captcha, code_regex, url_regex, public_regex, custom_emoji, profit, replace_chars, translation, executor, crypto_black_list, checks, max_checks, channels, captches, and checks_count. Also calls the register_handlers function.
+        """
         self.client = client
+        self.client.parse_mode = CustomMarkdown()
 
-        self.channel_id = -1111111
+        self.channel_id = -1111111111
         self.auto_withdraw = False
         self.withdraw_to = 'ваш_тег'
         self.auto_unfollow = True
@@ -25,6 +66,13 @@ class ChecksModule:
         self.code_regex = re.compile(r"t\.me/(CryptoBot|send|tonRocketBot|wallet|xrocket|xJetSwapBot|torwalletbot)\?start=(CQ[A-Za-z0-9]{10}|C-[A-Za-z0-9]{10}|t_[A-Za-z0-9]{15}|mci_[A-Za-z0-9]{15}|c_[a-z0-9]{24}|[A-Za-z0-9]{10})", re.IGNORECASE)
         self.url_regex = re.compile(r"https:\/\/t\.me\/\+(\w{12,})")
         self.public_regex = re.compile(r"https:\/\/t\.me\/(\w{4,})")
+        self.custom_emoji = {
+            'CryptoBot': '[👛](emoji/5388654252337931124)', 
+            'send': '[👛](emoji/5388654252337931124)', 
+            'tonRocketBot': '[🚀](emoji/5235575317191474172)', 
+            'wallet': '[👛](emoji/5388812380148866813)', 
+            'xrocket': '[🚀](emoji/5235575317191474172)'
+        }
 
         self.profit = ['Вы получили ', '✅ Вы получили: ', '💰 Вы получили ', 'Вы обналичили чек на сумму:']
 
@@ -70,7 +118,7 @@ class ChecksModule:
         """
         An asynchronous function that performs checks on an event.
         """
-        await event.edit(f"🟢 <b>FULL WORK</b>\n\n📋 <b>Успешно активировано:</b> <code>{self.checks_count}</code>", parse_mode='HTML')
+        await event.edit(f"[😍](emoji/5345992170388070686) **FULL WORK**\n\n[😋](emoji/5370956427277903406) **Успешно активировано:** `{self.checks_count}`")
 
     async def withdraw(self) -> None:
         """
@@ -211,11 +259,15 @@ class ChecksModule:
             summ = summ.replace(i, '')
 
         self.checks_count += 1
+
+        emoji = self.custom_emoji[username] if username in self.custom_emoji else '[🪙](emoji/5463046637842608206)'
+
         await self.client.send_message(self.channel_id,
-                                       message=f'✅ <b>Активирован чек на сумму:</b> <code>{summ}</code>\n\n'
-                                               f'<b>Инициатор:</b> @{my_usr}\n<b>Бот:</b> @{username}\n'
-                                               f'<b>Всего чеков после запуска активировано:</b> <code>{self.checks_count}</code>\n',
-                                       parse_mode='HTML')
+                               message=f'{emoji} **Активирован чек на сумму:** `{summ}`\n\n'
+                                       f'**Инициатор:** @{my_usr}\n'
+                                       f'**Бот:** @{username}\n'
+                                       f'**Всего чеков после запуска активировано:** `{self.checks_count}`\n',
+                               )
 
     async def handle_grabber(self, event) -> None:
         """
@@ -256,7 +308,6 @@ class ChecksModule:
                 await self.client.send_message(
                     self.channel_id,
                     message='<b>❌ Не удалось разгадать капчу, решите ее сами.</b>',
-                    parse_mode='HTML',
                 )
                 print('[!] Ошибка антикаптчи > Не удалось разгадать каптчу, решите ее сами.')
                 self.captches.append(recognized_text)
