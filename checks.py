@@ -16,13 +16,13 @@ class ChecksModule:
     def __init__(self):
         self.client = client
 
-        self.channel_id = -111111
+        self.channel_id = -1111111
         self.auto_withdraw = False
         self.withdraw_to = 'ваш_тег'
         self.auto_unfollow = True
         self.anti_captcha = True
 
-        self.code_regex = re.compile(r"t\.me/(CryptoBot|send|tonRocketBot|CryptoTestnetBot|wallet|xrocket|xJetSwapBot|torwalletbot)\?start=(CQ[A-Za-z0-9]{10}|C-[A-Za-z0-9]{10}|t_[A-Za-z0-9]{15}|mci_[A-Za-z0-9]{15}|c_[a-z0-9]{24}|[A-Za-z0-9]{10})", re.IGNORECASE)
+        self.code_regex = re.compile(r"t\.me/(CryptoBot|send|tonRocketBot|wallet|xrocket|xJetSwapBot|torwalletbot)\?start=(CQ[A-Za-z0-9]{10}|C-[A-Za-z0-9]{10}|t_[A-Za-z0-9]{15}|mci_[A-Za-z0-9]{15}|c_[a-z0-9]{24}|[A-Za-z0-9]{10})", re.IGNORECASE)
         self.url_regex = re.compile(r"https:\/\/t\.me\/\+(\w{12,})")
         self.public_regex = re.compile(r"https:\/\/t\.me\/(\w{4,})")
 
@@ -199,17 +199,22 @@ class ChecksModule:
         me = await self.client.get_me()
         my_usr = me.username
         try:
-            bot = (await self.client.get_entity(event.message.peer_id.user_id)).usernames[0].username
+            bot = (await self.client.get_entity(event.message.peer_id.user_id))
+            if bot.usernames:
+                username = bot.usernames[0]
+            else:
+                username = bot.username
         except AttributeError:
-            bot = (await self.client.get_entity(event.message.peer_id.user_id)).username
+            username = bot.username
         summ = event.raw_text
         for i in self.profit:
             summ = summ.replace(i, '')
+
         self.checks_count += 1
         await self.client.send_message(self.channel_id,
                                        message=f'✅ <b>Активирован чек на сумму:</b> <code>{summ}</code>\n\n'
-                                               f'<b>Инициатор:</b> @{my_usr}\n<b>Бот:</b> @{bot}\n'
-                                               f'<b>Всего чеков после запуска активировано:</b> <code>{self.checks_count}</code>',
+                                               f'<b>Инициатор:</b> @{my_usr}\n<b>Бот:</b> @{username}\n'
+                                               f'<b>Всего чеков после запуска активировано:</b> <code>{self.checks_count}</code>\n',
                                        parse_mode='HTML')
 
     async def handle_grabber(self, event) -> None:
