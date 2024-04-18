@@ -208,8 +208,6 @@ class ChecksModule:
         """
         Handles the "info" event.
         """
-        me = await self.client.get_me()
-        my_usr = me.username
         try:
             bot = (await self.client.get_entity(event.message.peer_id.user_id))
             if bot.usernames:
@@ -228,7 +226,6 @@ class ChecksModule:
 
         await self.client.send_message(self.channel_id,
                                message=f'{emoji} <b>Активирован чек на сумму:</b> <code>{summ}</code>\n\n'
-                                       f'<b>Инициатор:</b> @{my_usr}\n'
                                        f'<b>Бот:</b> @{username}\n'
                                        f'<b>Всего чеков после запуска активировано:</b> <code>{self.checks_count}</code>\n',
                                )
