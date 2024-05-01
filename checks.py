@@ -61,7 +61,6 @@ class ChecksModule:
         self.client.add_event_handler(self.handle_wallet, events.NewMessage(chats=[1985737506], pattern="⚠️ Вы не можете активировать этот чек, так как вы не являетесь подписчиком канала"))
         self.client.add_event_handler(self.handle_cryptobot, events.NewMessage(chats=[1559501630, 1622808649], pattern="Чтобы"))
         self.client.add_event_handler(self.handle_xrocket, events.NewMessage(chats=[5014831088], pattern="Для активации чека"))
-        self.client.add_event_handler(self.handle_xjetswap, events.NewMessage(chats=[5794061503]))
         self.client.add_event_handler(self.handle_info, events.NewMessage(chats=self.crypto_black_list, func=self.filter))
         self.client.add_event_handler(self.handle_info, events.MessageEdited(chats=self.crypto_black_list, func=self.filter))
         self.client.add_event_handler(self.handle_grabber, events.MessageEdited(outgoing=False, chats=self.crypto_black_list, blacklist_chats=True))
@@ -173,27 +172,6 @@ class ChecksModule:
         except AttributeError:
             pass
         await event.message.click(data=b'Check')
-
-    async def handle_xjetswap(self, event) -> None:
-        """
-        Handles the 'xjetswap' event.
-        """
-        try:
-            for row in event.message.reply_markup.rows:
-                for button in row.buttons:
-                    try:
-                        if (button.data.decode()).startswith(('showCheque_', 'activateCheque_')):
-                            await event.message.click(data=button.data)
-                    except Exception:
-                        pass
-                    channel = self.url_regex.search(button.url)
-                    public_channel = self.public_regex.search(button.url)
-                    if channel:
-                        await self.client(ImportChatInviteRequest(channel.group(1)))
-                    if public_channel:
-                        await self.client(JoinChannelRequest(public_channel.group(1)))
-        except AttributeError:
-            pass
 
     async def filter(self, event) -> bool:
         """
